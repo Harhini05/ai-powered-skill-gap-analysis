@@ -1,0 +1,133 @@
+import { SkillDefinition } from '../types';
+
+export const ALL_SKILLS: SkillDefinition[] = [
+  // Required specifically by prompt:
+  {
+    id: 'java',
+    name: 'Java',
+    category: 'Core Languages',
+    description: 'Object-oriented programming language widely used in enterprise backends, Android, and distributed systems.',
+    isPopular: true,
+  },
+  {
+    id: 'python',
+    name: 'Python',
+    category: 'Core Languages',
+    description: 'High-level expressive language dominant in Data Science, Machine Learning, backend automation, and scripting.',
+    isPopular: true,
+  },
+  {
+    id: 'sql',
+    name: 'SQL',
+    category: 'Backend & Data',
+    description: 'Structured Query Language for relational database querying, schema design, indexing, and transactional operations.',
+    isPopular: true,
+  },
+  {
+    id: 'html',
+    name: 'HTML',
+    category: 'Web & Frontend',
+    description: 'Semantic markup standard structuring accessible web document trees and metadata.',
+    isPopular: true,
+  },
+  {
+    id: 'css',
+    name: 'CSS',
+    category: 'Web & Frontend',
+    description: 'Cascading Style Sheets including modern Flexbox, CSS Grid, responsive media queries, and design systems.',
+    isPopular: true,
+  },
+  {
+    id: 'javascript',
+    name: 'JavaScript',
+    category: 'Core Languages',
+    description: 'Core runtime language of the web enabling asynchronous event-driven client and server-side execution.',
+    isPopular: true,
+  },
+  {
+    id: 'data-structures',
+    name: 'Data Structures',
+    category: 'CS Fundamentals',
+    description: 'Arrays, Linked Lists, Trees, Graphs, Hash Tables, Heaps, and algorithmic complexity (Big-O analysis).',
+    isPopular: true,
+  },
+  {
+    id: 'oop',
+    name: 'OOP',
+    category: 'CS Fundamentals',
+    description: 'Object-Oriented Programming principles: Encapsulation, Abstraction, Inheritance, Polymorphism, and SOLID design patterns.',
+    isPopular: true,
+  },
+  {
+    id: 'git',
+    name: 'Git',
+    category: 'DevOps & Tools',
+    description: 'Distributed version control, branching strategies, merge conflict resolution, and GitHub collaboration workflows.',
+    isPopular: true,
+  },
+  {
+    id: 'react',
+    name: 'React',
+    category: 'Web & Frontend',
+    description: 'Component-driven frontend UI library featuring hooks, virtual DOM reconciler, and state management architectures.',
+    isPopular: true,
+  },
+  {
+    id: 'spring-boot',
+    name: 'Spring Boot',
+    category: 'Backend & Data',
+    description: 'Enterprise Java framework for production microservices, dependency injection, JPA/Hibernate, and security.',
+    isPopular: true,
+  },
+  {
+    id: 'machine-learning',
+    name: 'Machine Learning',
+    category: 'AI & Machine Learning',
+    description: 'Supervised/unsupervised algorithms, scikit-learn, evaluation metrics, feature engineering, and model validation.',
+    isPopular: true,
+  },
+  
+  // Complementary high-demand skills for comprehensive industry benchmarking
+  {
+    id: 'typescript',
+    name: 'TypeScript',
+    category: 'Core Languages',
+    description: 'Static typing superset of JavaScript providing robust type safety, interfaces, and compile-time guarantees.',
+    isPopular: false,
+  },
+  {
+    id: 'docker',
+    name: 'Docker',
+    category: 'DevOps & Tools',
+    description: 'Containerization, Dockerfile orchestration, container networking, and reproducible application packaging.',
+    isPopular: false,
+  },
+  {
+    id: 'rest-apis',
+    name: 'REST APIs',
+    category: 'Backend & Data',
+    description: 'RESTful API contract design, HTTP verbs, status codes, JSON serialization, and token authentication.',
+    isPopular: true,
+  },
+  {
+    id: 'pandas-numpy',
+    name: 'Pandas & NumPy',
+    category: 'AI & Machine Learning',
+    description: 'Vectorized computing, exploratory data analysis (EDA), data cleaning, matrix math, and DataFrame transformations.',
+    isPopular: false,
+  },
+  {
+    id: 'deep-learning',
+    name: 'Deep Learning',
+    category: 'AI & Machine Learning',
+    description: 'Neural networks, PyTorch, TensorFlow, convolution, transformers, and GPU tensor processing.',
+    isPopular: false,
+  },
+  {
+    id: 'linux-shell',
+    name: 'Linux & Bash',
+    category: 'DevOps & Tools',
+    description: 'Command line operations, file permissions, process management, shell scripting, and server troubleshooting.',
+    isPopular: false,
+  },
+];

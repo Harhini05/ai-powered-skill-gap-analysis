@@ -1,0 +1,6 @@
+{
+  "name": "AI-Powered Skill Gap Analysis & Career Recommendation System",
+  "description": "An academic platform helping college students assess technical competencies, identify skill gaps for tech roles, and navigate personalized learning roadmaps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
