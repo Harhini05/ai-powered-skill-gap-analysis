@@ -528,7 +528,11 @@ const topMatch = sorted.length > 0 ? sorted[0] : null;
                   <span>Learning Roadmap</span>
                 </button>
                    <button
-     onClick={() => setStudent({ ...student, confirmedCareerRoleId: item.role.id })}
+        onClick={() => {
+     setStudent({ ...student, confirmedCareerRoleId: item.role.id });
+     setSelectedRoleId(item.role.id);
+     setActivePage('roadmap');
+   }}
      className={`flex-1 py-2 text-xs font-semibold rounded-lg border flex items-center justify-center gap-1.5 ${
        student.confirmedCareerRoleId === item.role.id
          ? 'bg-emerald-600 text-white border-emerald-600'

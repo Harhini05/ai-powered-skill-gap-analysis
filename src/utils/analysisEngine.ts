@@ -291,10 +291,16 @@ const personalFitScore = calculatePersonalFitScore(role, student);
 
    const skillRelevance = skillRelevanceScore(role, student);
 
+      const hasInterests =
+     (student.interests?.length || 0) + (student.careerPreferences?.length || 0) > 0;
+
    const careerFitScore = Math.round(
-     report.overallReadinessScore * 0.35 +
-     skillRelevance * 0.25 +
-     personalFitScore * 0.40
+     hasInterests
+       ? report.overallReadinessScore * 0.50 +
+         skillRelevance * 0.30 +
+         personalFitScore * 0.20
+       : report.overallReadinessScore * 0.60 +
+         skillRelevance * 0.40
    );
 const matchingSkillsList = report.matchingSkills.map(s => s.skillName);
     const missingSkillsList = report.missingSkills.map(s => s.skillName);
