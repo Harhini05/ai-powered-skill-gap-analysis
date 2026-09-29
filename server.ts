@@ -16,7 +16,7 @@ const createHanaConnection = () => hanaClient.createConnection();
 app.get('/api/hana/test', (req, res) => {
     const hanaConnection = createHanaConnection();
   hanaConnection.connect({
-    serverNode: `${process.env.HANA_HOST}:${process.env.HANA_PORT}`,
+    serverNode: `server${process.env.HANA_HOST}:${process.env.HANA_PORT}`,
     uid: process.env.HANA_USER,
     pwd: process.env.HANA_PASSWORD,
     encrypt: true
@@ -194,9 +194,109 @@ app.get('/api/hana/roadmap', (req, res) => {
     });
   });
 });
-app.use('/api', (req, res, next) => {
-  next();
+app.get('/api/hana/courses', (req, res) => {
+  const hanaConnection = createHanaConnection();
+
+  hanaConnection.connect({
+    serverNode: `${process.env.HANA_HOST}:${process.env.HANA_PORT}`,
+    uid: process.env.HANA_USER,
+    pwd: process.env.HANA_PASSWORD,
+    encrypt: true
+  }, (err) => {
+    if (err) {
+      console.error('HANA connection error:', err);
+      return res.status(500).json({
+        success: false,
+        error: err.message
+      });
+    }
+
+    const query = `
+      SELECT
+        COURSE_ID,
+        COURSE_NAME,
+        PROVIDER,
+        COURSE_URL,
+        ROLE_ID,
+        SKILL_ID,
+        LEVEL,
+        DESCRIPTION,
+        MIN_YEAR,
+        MAX_YEAR
+      FROM COURSES
+      ORDER BY ROLE_ID, MIN_YEAR, COURSE_NAME
+    `;
+
+    hanaConnection.exec(query, (err, result) => {
+      hanaConnection.disconnect();
+
+      if (err) {
+        console.error('HANA query error:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message
+        });
+      }
+
+      res.json({
+        success: true,
+        courses: result
+      });
+    });
+  });
 });
+app.get('/api/hana/certifications', (req, res) => {
+  const hanaConnection = createHanaConnection();
+
+  hanaConnection.connect({
+    serverNode: `${process.env.HANA_HOST}:${process.env.HANA_PORT}`,
+    uid: process.env.HANA_USER,
+    pwd: process.env.HANA_PASSWORD,
+    encrypt: true
+  }, (err) => {
+    if (err) {
+      console.error('HANA connection error:', err);
+      return res.status(500).json({
+        success: false,
+        error: err.message
+      });
+    }
+
+    const query = `
+      SELECT
+        CERTIFICATION_ID,
+        CERTIFICATION_NAME,
+        PROVIDER,
+        CERTIFICATION_URL,
+        ROLE_ID,
+        SKILL_ID,
+        LEVEL,
+        DESCRIPTION,
+        MIN_YEAR,
+        MAX_YEAR
+      FROM CERTIFICATIONS
+      ORDER BY ROLE_ID, MIN_YEAR, CERTIFICATION_NAME
+    `;
+
+    hanaConnection.exec(query, (err, result) => {
+      hanaConnection.disconnect();
+
+      if (err) {
+        console.error('HANA query error:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message
+        });
+      }
+
+      res.json({
+        success: true,
+        certifications: result
+      });
+    });
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
@@ -218,6 +318,33 @@ if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
   } catch (err) {
     console.warn('Failed to initialize GoogleGenAI client:', err);
   }
+}
+
+const MODEL_CHAIN = (
+  process.env.GEMINI_MODELS ||
+  'gemini-3.8-flash,gemini-3.7-flash,gemini-3.5-flash,gemini-flash-latest,gemini-3.1-flash-lite,gemini-2.5-flash-lite'
+).split(',').map(m => m.trim());
+
+async function generateWithRetry(contents: string) {
+  if (!aiClient) throw new Error('No AI client');
+  let lastErr: any;
+  for (const model of MODEL_CHAIN) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await aiClient.models.generateContent({
+          model,
+          contents,
+          config: { responseMimeType: 'application/json' },
+        });
+      } catch (err: any) {
+        lastErr = err;
+        if (err?.status === 404) break; // model not available, try next
+        if (err?.status !== 503 && err?.status !== 429) throw err;
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 // AI Diagnostic & Placement Advisory Endpoint
@@ -263,6 +390,10 @@ Analyze this college student's profile for the target career role:
 - Missing Skills (Not Yet Learned): ${JSON.stringify(missingSkills || [])}
 
 Provide high-impact, actionable, academic & placement advisory.
+Rules:
+- Base recommendations on the Missing and Improvement lists above.
+- Do not make claims about soft skills, degree type, or urgency that the data does not support.
+- Keep the project to the target role's own skills; do not invent extra technologies.
 Return your response ONLY as valid JSON matching this schema:
 {
   "executiveSummary": "Concise 2-3 sentence strategic analysis of their placement potential.",
@@ -280,13 +411,7 @@ Return your response ONLY as valid JSON matching this schema:
   "placementTimeline": "E.g., 6-8 weeks intensive roadmap"
 }`;
 
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
+    const response = await generateWithRetry(prompt);
 
     const text = response.text;
     if (text) {
@@ -454,13 +579,7 @@ Return ONLY a JSON array of 3-4 structured milestone phases matching:
   }
 ]`;
 
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
+    const response = await generateWithRetry(prompt);
 
     const text = response.text;
     if (text) {
@@ -474,7 +593,7 @@ Return ONLY a JSON array of 3-4 structured milestone phases matching:
 
     return res.json({ success: true, isAI: false, milestones: fallbackMilestones });
     } catch (error) {
-    console.warn('Gemini unavailable. Using role-specific roadmap fallback.');
+  console.warn('Gemini unavailable:', error);
     return res.json({
       success: true,
       isAI: false,

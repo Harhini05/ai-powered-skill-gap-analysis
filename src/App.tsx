@@ -14,7 +14,7 @@ const STORAGE_KEY = 'skillbridge_student_profile_v1';
 
 export default function App() {
   const [activePage, setActivePage] = useState<ActivePage>('home');
-  const [selectedRoleId, setSelectedRoleId] = useState<string>('java-developer');
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
 
   // Initialize student from localStorage or default demo student
   const [student, setStudent] = useState<StudentProfile>(() => {
@@ -29,6 +29,23 @@ export default function App() {
     // Default to first sample profile
     return SAMPLE_PROFILES[0].profile;
   });
+
+    const resetStudentAssessment = () => {
+    const emptyProfile: StudentProfile = {
+      name: '',
+      degree: '',
+      collegeYear: '',
+      skills: [],
+      interests: [],
+      careerPreferences: [],
+      completedRoadmapSkills: [],
+      confirmedCareerRoleId: undefined,
+    };
+
+    setStudent(emptyProfile);
+    setSelectedRoleId('');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyProfile));
+  };
 
   // Save to localStorage when student changes
   useEffect(() => {
@@ -66,10 +83,11 @@ export default function App() {
 
         {activePage === 'assessment' && (
           <SkillAssessmentPage
-            student={student}
-            setStudent={setStudent}
-            setActivePage={setActivePage}
-          />
+  student={student}
+  setStudent={setStudent}
+  setActivePage={setActivePage}
+  resetStudentAssessment={resetStudentAssessment}
+/>
         )}
 
         {activePage === 'gap-analysis' && (
@@ -84,6 +102,7 @@ export default function App() {
         {activePage === 'recommendations' && (
           <CareerRecommendationPage
             student={student}
+            setStudent={setStudent}
             setSelectedRoleId={setSelectedRoleId}
             setActivePage={setActivePage}
           />

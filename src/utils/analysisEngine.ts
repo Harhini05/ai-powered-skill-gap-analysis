@@ -38,10 +38,10 @@ export function analyzeCareerGap(role: CareerRole, student: StudentProfile): Car
   // Map student skills for fast lookup
   const studentSkillMap = new Map<string, SkillLevel>();
   for (const s of student.skills) {
-    studentSkillMap.set(s.skillId.toLowerCase(), s.level);
-    // also normalize name
-    studentSkillMap.set(s.skillName.toLowerCase(), s.level);
-  }
+  studentSkillMap.set(String(s.skillId ?? '').toLowerCase(), s.level);
+  // also normalize name
+  studentSkillMap.set(String(s.skillName ?? '').toLowerCase(), s.level);
+}
 
   // Account for roadmap checkoffs
   const completedRoadmap = new Set(student.completedRoadmapSkills || []);
@@ -51,20 +51,16 @@ export function analyzeCareerGap(role: CareerRole, student: StudentProfile): Car
   for (const req of role.requiredSkills) {
     const skillDef = ALL_SKILLS.find(
   s =>
-    s.id.toLowerCase() === String(req.skillId).toLowerCase() ||
-    s.name.toLowerCase() === String(req.skillName).toLowerCase()
+    String(s.id ?? '').toLowerCase() === String(req.skillId ?? '').toLowerCase() ||
+    String(s.name ?? '').toLowerCase() === String(req.skillName ?? '').toLowerCase()
 );
 
-console.log('SKILL DEBUG:', {
-  reqSkillId: req.skillId,
-  reqSkillName: req.skillName,
-  matchedSkill: skillDef,
-});
 
 
 const category = req.category || skillDef?.category || 'CS Fundamentals';
-    let studentLevel = studentSkillMap.get(req.skillId.toLowerCase()) || 
-                       studentSkillMap.get(req.skillName.toLowerCase());
+    let studentLevel =
+  studentSkillMap.get(String(req.skillId ?? '').toLowerCase()) ||
+  studentSkillMap.get(String(req.skillName ?? '').toLowerCase());
 
     // If marked completed in roadmap, elevate level
     if (!studentLevel && completedRoadmap.has(req.skillId)) {
@@ -168,6 +164,120 @@ const category = req.category || skillDef?.category || 'CS Fundamentals';
   };
 }
 
+function calculatePersonalFitScore(
+  role: CareerRole,
+  student: StudentProfile
+): number {
+  const interests = student.interests || [];
+  const preferences = student.careerPreferences || [];
+
+  const interestMatches: Record<string, string[]> = {
+    'Software Development': [
+      'java-developer',
+      'python-developer',
+      'web-developer',
+      'ai-ml-engineer',
+    ],
+    'Data & Analytics': [
+      'data-analyst',
+      'data-scientist',
+      'business-analyst',
+    ],
+    'AI & Machine Learning': [
+      'ai-ml-engineer',
+      'data-scientist',
+    ],
+    'Cloud & DevOps': [
+      'cloud-engineer',
+      'devops-engineer',
+    ],
+    'Cybersecurity': [
+      'cybersecurity-analyst',
+    ],
+    'Web Development': [
+      'web-developer',
+    ],
+    'Business & Management': [
+      'business-analyst',
+    ],
+  };
+
+  const preferenceMatches: Record<string, string[]> = {
+    'Building Applications': [
+      'web-developer',
+      'java-developer',
+      'python-developer',
+      'ai-ml-engineer',
+    ],
+    'Working with Data': [
+      'data-analyst',
+      'data-scientist',
+      'business-analyst',
+    ],
+    'Solving Technical Problems': [
+      'java-developer',
+      'python-developer',
+      'ai-ml-engineer',
+      'cloud-engineer',
+      'devops-engineer',
+      'cybersecurity-analyst',
+    ],
+    'Designing Systems': [
+      'java-developer',
+      'cloud-engineer',
+      'devops-engineer',
+      'ai-ml-engineer',
+    ],
+    'Working in Cybersecurity': [
+      'cybersecurity-analyst',
+    ],
+    'Business & Process Analysis': [
+      'business-analyst',
+    ],
+    'Research & Innovation': [
+      'ai-ml-engineer',
+      'data-scientist',
+    ],
+  };
+
+       const interestHits = interests.filter(i => roleMatches(role, interestMatches[i])).length;
+     const prefHits = preferences.filter(p => roleMatches(role, preferenceMatches[p])).length;
+
+     const interestFit = interests.length ? (interestHits / interests.length) * 100 : 0;
+     const prefFit = preferences.length ? (prefHits / preferences.length) * 100 : 0;
+
+     if (interests.length && preferences.length) {
+       return Math.round(interestFit * 0.6 + prefFit * 0.4);
+     }
+     return Math.round(interestFit || prefFit);
+   }
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+function roleMatches(role: CareerRole, list?: string[]): boolean {
+  if (!list) return false;
+  const title = (role as any).title ?? (role as any).name ?? '';
+  const keys = [String(role.id).toLowerCase(), slugify(title)];
+  return list.some(k => keys.includes(k));
+}
+
+// How many of the student's chosen skills this role actually uses
+function skillRelevanceScore(role: CareerRole, student: StudentProfile): number {
+  if (!student.skills.length) return 0;
+  const reqKeys = new Set(
+    role.requiredSkills.flatMap(r => [
+      String(r.skillId).toLowerCase(),
+      String(r.skillName).toLowerCase(),
+    ])
+  );
+  const used = student.skills.filter(
+    s => reqKeys.has(s.skillId.toLowerCase()) || reqKeys.has(s.skillName.toLowerCase())
+  ).length;
+  return Math.round((used / student.skills.length) * 100);
+}
+
+
+
 /**
  * Computes recommendations across all career roles and ranks them by match
  */
@@ -177,18 +287,28 @@ export function getCareerRecommendations(
 ): CareerRecommendationItem[] {
   const recommendations: CareerRecommendationItem[] = roles.map(role => {
     const report = analyzeCareerGap(role, student);
+const personalFitScore = calculatePersonalFitScore(role, student);
 
-    const matchingSkillsList = report.matchingSkills.map(s => s.skillName);
+   const skillRelevance = skillRelevanceScore(role, student);
+
+   const careerFitScore = Math.round(
+     report.overallReadinessScore * 0.35 +
+     skillRelevance * 0.25 +
+     personalFitScore * 0.40
+   );
+const matchingSkillsList = report.matchingSkills.map(s => s.skillName);
     const missingSkillsList = report.missingSkills.map(s => s.skillName);
     const improvementSkillsList = report.improvementSkills.map(s => s.skillName);
 
     const topGaps = [...missingSkillsList, ...improvementSkillsList].slice(0, 3);
 
-    return {
-      role,
-      matchPercentage: report.matchPercentage,
-      overallReadinessScore: report.overallReadinessScore,
-      matchingSkillsCount: report.matchingSkills.length,
+return {
+  role,
+  matchPercentage: report.matchPercentage,
+  overallReadinessScore: report.overallReadinessScore,
+  personalFitScore,
+  careerFitScore,
+  matchingSkillsCount: report.matchingSkills.length,
       matchingSkillsList,
       missingSkillsCount: report.missingSkills.length,
       missingSkillsList,
@@ -199,14 +319,25 @@ export function getCareerRecommendations(
     };
   });
 
-  // Sort descending by readiness score, then match percentage
+  // "Sort descending by career fit score", then match percentage
   recommendations.sort((a, b) => {
-    if (b.overallReadinessScore !== a.overallReadinessScore) {
-      return b.overallReadinessScore - a.overallReadinessScore;
-    }
-    return b.matchPercentage - a.matchPercentage;
-  });
+  const careerFitA = a.careerFitScore ?? 0;
+  const careerFitB = b.careerFitScore ?? 0;
 
+  if (careerFitB !== careerFitA) {
+    return careerFitB - careerFitA;
+  }
+
+  if (b.personalFitScore !== a.personalFitScore) {
+    return (b.personalFitScore ?? 0) - (a.personalFitScore ?? 0);
+  }
+
+  if (b.overallReadinessScore !== a.overallReadinessScore) {
+    return b.overallReadinessScore - a.overallReadinessScore;
+  }
+
+  return b.matchPercentage - a.matchPercentage;
+});
   if (recommendations.length > 0) {
     recommendations[0].isTopMatch = true;
   }

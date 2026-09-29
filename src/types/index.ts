@@ -27,11 +27,23 @@ export interface StudentSkill {
 }
 
 export interface StudentProfile {
+
   name: string;
+
   degree: string;
+
   collegeYear: string;
+
   skills: StudentSkill[];
+
+  interests?: string[];
+
+  careerPreferences?: string[];
+
   completedRoadmapSkills?: string[];
+
+  confirmedCareerRoleId?: string;
+
 }
 
 export interface RoleSkillRequirement {
@@ -44,15 +56,29 @@ export interface RoleSkillRequirement {
 }
 
 export interface CareerRole {
+
   id: string;
+
   title: string;
+
   category: string;
+
   description: string;
+
   requiredSkills: RoleSkillRequirement[];
+
   industryDemand: 'High' | 'Very High' | 'Critical';
+
   typicalSalaryRange: string;
+
+  marketSkills?: string[];
+
+  marketOutlook?: string;
+
   keyResponsibilities: string[];
+
   recommendedElectives: string[];
+
 }
 
 export type SkillMatchStatus = 'mastered' | 'improvement_needed' | 'missing';
@@ -121,6 +147,8 @@ export interface CareerRecommendationItem {
   role: CareerRole;
   matchPercentage: number;
   overallReadinessScore: number;
+  personalFitScore?: number;
+  careerFitScore?: number;
   matchingSkillsCount: number;
   matchingSkillsList: string[];
   missingSkillsCount: number;

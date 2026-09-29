@@ -19,6 +19,7 @@ interface SkillAssessmentPageProps {
   student: StudentProfile;
   setStudent: (student: StudentProfile) => void;
   setActivePage: (page: ActivePage) => void;
+  resetStudentAssessment: () => void;
 }
 
 const COMMON_DEGREES = [
@@ -39,10 +40,31 @@ const COLLEGE_YEARS = [
   'Postgraduate / Recent Graduate',
 ];
 
+const CAREER_INTERESTS = [
+  'Software Development',
+  'Data & Analytics',
+  'AI & Machine Learning',
+  'Cloud & DevOps',
+  'Cybersecurity',
+  'Web Development',
+  'Business & Management',
+];
+
+const CAREER_PREFERENCES = [
+  'Building Applications',
+  'Working with Data',
+  'Solving Technical Problems',
+  'Designing Systems',
+  'Working in Cybersecurity',
+  'Business & Process Analysis',
+  'Research & Innovation',
+];
+
 export const SkillAssessmentPage: React.FC<SkillAssessmentPageProps> = ({
   student,
   setStudent,
   setActivePage,
+  resetStudentAssessment,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -207,18 +229,27 @@ export const SkillAssessmentPage: React.FC<SkillAssessmentPageProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => setActivePage('gap-analysis')}
-          disabled={student.skills.length === 0}
-          className={`px-5 py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            student.skills.length > 0
-              ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          <span>Analyze My Skills</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+  <button
+    onClick={resetStudentAssessment}
+    className="px-4 py-2.5 text-xs font-semibold rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
+  >
+    Start New Assessment
+  </button>
+
+  <button
+    onClick={() => setActivePage('gap-analysis')}
+    disabled={student.skills.length === 0}
+    className={`px-5 py-2.5 text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+      student.skills.length > 0
+        ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+    }`}
+  >
+    <span>Analyze My Skills</span>
+    <ArrowRight className="w-4 h-4" />
+  </button>
+</div>
       </div>
 
       {/* Student Academic Info Card */}
@@ -276,6 +307,118 @@ export const SkillAssessmentPage: React.FC<SkillAssessmentPageProps> = ({
                 <option key={i} value={y}>{y}</option>
               ))}
             </select>
+          </div>
+        </div>
+      </div>
+
+            {/* Career Interests & Preferences */}
+      <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-xs">
+        <div className="mb-5">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+            Career Interests & Preferences
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Select the areas you are interested in and the type of work you prefer.
+            These preferences help personalize career recommendations.
+          </p>
+        </div>
+
+        {/* Career Interests */}
+        <div className="mb-6">
+          <label className="block text-xs font-semibold text-slate-700 mb-3">
+            Areas of Interest
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {CAREER_INTERESTS.map((interest) => {
+              const isSelected = student.interests?.includes(interest) ?? false;
+
+              return (
+                <button
+                  key={interest}
+                  type="button"
+                  onClick={() => {
+                    const current = student.interests || [];
+                    const updated = isSelected
+                      ? current.filter((item) => item !== interest)
+                      : [...current, interest];
+
+                    setStudent({
+                      ...student,
+                      interests: updated,
+                    });
+                  }}
+                  className={`px-3 py-2.5 text-xs font-medium rounded-lg border text-left transition-all ${
+                    isSelected
+                      ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-1 ring-indigo-500'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-indigo-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        isSelected
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          : 'bg-white border-slate-300'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </span>
+                    {interest}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Career Preferences */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-3">
+            Preferred Work Areas
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {CAREER_PREFERENCES.map((preference) => {
+              const isSelected =
+                student.careerPreferences?.includes(preference) ?? false;
+
+              return (
+                <button
+                  key={preference}
+                  type="button"
+                  onClick={() => {
+                    const current = student.careerPreferences || [];
+                    const updated = isSelected
+                      ? current.filter((item) => item !== preference)
+                      : [...current, preference];
+
+                    setStudent({
+                      ...student,
+                      careerPreferences: updated,
+                    });
+                  }}
+                  className={`px-3 py-2.5 text-xs font-medium rounded-lg border text-left transition-all ${
+                    isSelected
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-1 ring-emerald-500'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        isSelected
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'bg-white border-slate-300'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </span>
+                    {preference}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

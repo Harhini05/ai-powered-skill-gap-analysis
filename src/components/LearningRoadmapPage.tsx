@@ -35,9 +35,52 @@ export const LearningRoadmapPage: React.FC<LearningRoadmapPageProps> = ({
   setSelectedRoleId,
   setActivePage,
 }) => {
-  const currentRole = CAREER_ROLES.find(r => r.id === selectedRoleId) || CAREER_ROLES[0];
-  
-  const gapReport = analyzeCareerGap(currentRole, student);
+  const [hanaRoles, setHanaRoles] = useState<any[]>([]);
+  const [hanaCourses, setHanaCourses] = useState<any[]>([]);
+const [hanaCertifications, setHanaCertifications] = useState<any[]>([]);
+const hasSelectedRole = selectedRoleId !== '';
+
+const currentRole =
+  hanaRoles.find((r: any) => r.id === selectedRoleId) ||
+  CAREER_ROLES.find(r => r.id === selectedRoleId) ||
+  CAREER_ROLES[0];
+const gapReport = analyzeCareerGap(currentRole, student);
+
+const YEAR_ORDER: Record<string, number> = {
+  '1st Year': 1,
+  '2nd Year': 2,
+  '3rd Year': 3,
+  'Final Year': 4,
+};
+
+const studentYearNumber = YEAR_ORDER[student.collegeYear] || 4;
+
+const recommendedCourses = hanaCourses.filter((course: any) => {
+  const minYear = YEAR_ORDER[course.MIN_YEAR] || 1;
+  const maxYear = YEAR_ORDER[course.MAX_YEAR] || 4;
+
+  return (
+    course.ROLE_ID === currentRole.id &&
+    studentYearNumber >= minYear &&
+    studentYearNumber <= maxYear
+  );
+});
+
+const recommendedCertifications = hanaCertifications.filter((cert: any) => {
+  const minYear = YEAR_ORDER[cert.MIN_YEAR] || 1;
+  const maxYear = YEAR_ORDER[cert.MAX_YEAR] || 4;
+
+  return (
+    cert.ROLE_ID === currentRole.id &&
+    studentYearNumber >= minYear &&
+    studentYearNumber <= maxYear
+  );
+});
+
+const prioritySkills = [
+  ...gapReport.missingSkills,
+  ...gapReport.improvementSkills,
+];
 
   const completedSet = new Set(student.completedRoadmapSkills || []);
 
@@ -46,8 +89,7 @@ export const LearningRoadmapPage: React.FC<LearningRoadmapPageProps> = ({
   const [customAIPlan, setCustomAIPlan] = useState<any[] | null>(null);
   const [loadingAIPlan, setLoadingAIPlan] = useState(false);
   const [hanaRoadmap, setHanaRoadmap] = useState<any[]>([]);
-  const [hanaRoles, setHanaRoles] = useState<any[]>([]);
-
+  
   useEffect(() => {
   fetch('/api/hana/roadmap')
     .then((response) => response.json())
@@ -58,6 +100,30 @@ export const LearningRoadmapPage: React.FC<LearningRoadmapPageProps> = ({
     })
     .catch((error) => {
       console.error('Failed to load roadmap from HANA:', error);
+    });
+}, []);
+
+useEffect(() => {
+  fetch('/api/hana/courses')
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        setHanaCourses(data.courses);
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to load courses from HANA:', error);
+    });
+
+  fetch('/api/hana/certifications')
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        setHanaCertifications(data.certifications);
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to load certifications from HANA:', error);
     });
 }, []);
 
@@ -145,6 +211,37 @@ const phases = hanaRoadmap
     ? Math.round((completedCount / allMilestoneIds.length) * 100) 
     : 0;
 
+    if (!hasSelectedRole) {
+  return (
+    <div className="p-6">
+      <div className="max-w-3xl mx-auto mt-12">
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
+          <div className="w-14 h-14 mx-auto rounded-full bg-indigo-50 flex items-center justify-center">
+            <Layers className="w-7 h-7 text-indigo-600" />
+          </div>
+
+          <h2 className="mt-5 text-xl font-bold text-slate-900">
+            No Career Path Selected
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+            Complete your skill assessment and explore your career
+            recommendations to select a career path and generate your
+            personalized learning roadmap.
+          </p>
+
+          <button
+            onClick={() => setActivePage('recommendations')}
+            className="mt-6 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            View Career Recommendations
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-20">
       
@@ -165,6 +262,24 @@ const phases = hanaRoadmap
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-3">
+          {student.confirmedCareerRoleId && (
+  <div className="flex flex-col text-[10px] leading-tight mr-2">
+    <span className="text-emerald-600 font-semibold">
+      Confirmed Career:{" "}
+      {hanaRoles.find(
+        (r: any) => r.id === student.confirmedCareerRoleId
+      )?.title ||
+        CAREER_ROLES.find(
+          (r) => r.id === student.confirmedCareerRoleId
+        )?.title ||
+        "Confirmed Role"}
+    </span>
+
+    <span className="text-slate-500 mt-0.5">
+      Currently Viewing: {currentRole.title}
+    </span>
+  </div>
+)}
           <select
             value={selectedRoleId}
             onChange={(e) => setSelectedRoleId(e.target.value)}
@@ -231,6 +346,57 @@ const phases = hanaRoadmap
         </div>
       </div>
 
+      {/* Personalized Priority Skills */}
+{prioritySkills.length > 0 && (
+  <div className="p-6 bg-white rounded-xl border border-indigo-100 shadow-xs">
+    <div className="flex items-start gap-3">
+      <div className="p-2 rounded-lg bg-indigo-50">
+        <TrendingUp className="w-5 h-5 text-indigo-600" />
+      </div>
+
+      <div className="flex-1">
+        <h3 className="text-sm font-bold text-slate-900">
+          Your Priority Skills
+        </h3>
+
+        <p className="text-xs text-slate-500 mt-1">
+          These skills are prioritized based on your current skill gaps for
+          the {currentRole.title} role.
+        </p>
+
+        <div className="flex flex-wrap gap-2 mt-4">
+          {prioritySkills.map((skill: any) => (
+            <span
+              key={skill.skillId}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full border ${
+                gapReport.missingSkills.some(
+                  (s: any) => s.skillId === skill.skillId
+                )
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}
+            >
+              {skill.skillName}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 mt-3 text-[10px] text-slate-500">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-rose-400" />
+            Missing skill
+          </span>
+
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            Needs improvement
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
       {/* AI Personalized Schedule Customizer Box */}
       <div className="p-6 bg-slate-900 text-white rounded-2xl shadow-sm border border-slate-800 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -280,6 +446,99 @@ const phases = hanaRoadmap
           </div>
         )}
       </div>
+
+      {/* Recommended Courses & Certifications */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  {/* Courses */}
+  <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
+    <div className="flex items-center gap-2 mb-4">
+      <BookOpen className="w-5 h-5 text-indigo-600" />
+      <h2 className="text-base font-bold text-slate-900">
+        Recommended Courses
+      </h2>
+    </div>
+
+    {recommendedCourses.length > 0 ? (
+      <div className="space-y-3">
+        {recommendedCourses.map((course: any) => (
+          <a
+            key={course.COURSE_ID}
+            href={course.COURSE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-4 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  {course.COURSE_NAME}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+  {course.PROVIDER} · {course.LEVEL} · {course.MIN_YEAR} – {course.MAX_YEAR}
+</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-indigo-600 shrink-0" />
+            </div>
+
+            <p className="text-xs text-slate-600 mt-2">
+              {course.DESCRIPTION}
+            </p>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <p className="text-sm text-slate-500">
+        No courses available for this career path and academic year.
+      </p>
+    )}
+  </div>
+
+  {/* Certifications */}
+  <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
+    <div className="flex items-center gap-2 mb-4">
+      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+      <h2 className="text-base font-bold text-slate-900">
+        Recommended Certifications
+      </h2>
+    </div>
+
+    {recommendedCertifications.length > 0 ? (
+      <div className="space-y-3">
+        {recommendedCertifications.map((cert: any) => (
+          <a
+            key={cert.CERTIFICATION_ID}
+            href={cert.CERTIFICATION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-4 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  {cert.CERTIFICATION_NAME}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+  {cert.PROVIDER} · {cert.LEVEL} · {cert.MIN_YEAR} – {cert.MAX_YEAR}
+</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-emerald-600 shrink-0" />
+            </div>
+
+            <p className="text-xs text-slate-600 mt-2">
+              {cert.DESCRIPTION}
+            </p>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <p className="text-sm text-slate-500">
+        No certifications available for this career path and academic year.
+      </p>
+    )}
+  </div>
+
+</div>
 
       {/* Suggested Chronological Roadmap Phases */}
       <div className="space-y-8">

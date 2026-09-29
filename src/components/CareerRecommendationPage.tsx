@@ -15,19 +15,33 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 
+const ROLE_CATEGORY: Record<string, string> = {
+  'java-developer': 'Backend & Enterprise',
+  'python-developer': 'Backend & Automation',
+  'web-developer': 'Frontend & Full Stack',
+  'ai-ml-engineer': 'AI & Data Science',
+  'data-scientist': 'AI & Data Science',
+  'data-analyst': 'Data & Analytics',
+  'business-analyst': 'Data & Analytics',
+  'cloud-engineer': 'Cloud & Security',
+  'devops-engineer': 'Cloud & Security',
+  'cybersecurity-analyst': 'Cloud & Security',
+};
+
 interface CareerRecommendationPageProps {
   student: StudentProfile;
+  setStudent: (student: StudentProfile) => void;
   setSelectedRoleId: (roleId: string) => void;
   setActivePage: (page: ActivePage) => void;
 }
 
 export const CareerRecommendationPage: React.FC<CareerRecommendationPageProps> = ({
   student,
+  setStudent,
   setSelectedRoleId,
   setActivePage,
-}) => {
-  const [filterCategory, setFilterCategory] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<'match' | 'readiness'>('readiness');
+}) => {  const [filterCategory, setFilterCategory] = useState<string>('All');
+     const [sortBy, setSortBy] = useState<'careerFit' | 'match' | 'readiness'>('careerFit');
 
   const [hanaRoles, setHanaRoles] = useState<any[]>([]);
 
@@ -40,21 +54,23 @@ useEffect(() => {
          const roles = data.roles.map((role: any) => ({
   id: role.id,
   title: role.title,
-  category:
-  role.id === 'java-developer'
-    ? 'Backend & Enterprise'
-    : role.id === 'python-developer'
-    ? 'Backend & Automation'
-    : role.id === 'web-developer'
-    ? 'Frontend & Full Stack'
-    : role.id === 'ai-ml-engineer'
-    ? 'AI & Data Science'
-    : 'Data & Analytics',
+  category: ROLE_CATEGORY[role.id] ?? 'Other',
   description: role.description,
   requiredSkills: role.requiredSkills,
-  industryDemand: role.industryDemand,
-  typicalSalaryRange: role.salary,
-  keyResponsibilities: [],
+industryDemand: role.industryDemand,
+typicalSalaryRange: role.salary,
+marketSkills: role.requiredSkills
+  .slice()
+  .sort((a: any, b: any) => b.weight - a.weight)
+  .slice(0, 5)
+  .map((skill: any) => skill.skillName),
+marketOutlook:
+  role.industryDemand === 'Critical'
+    ? 'Critical industry demand based on the current role benchmark.'
+    : role.industryDemand === 'Very High'
+    ? 'Very high industry demand based on the current role benchmark.'
+    : 'High industry demand based on the current role benchmark.',
+keyResponsibilities: [],
   recommendedElectives: [],
 }));
 
@@ -68,23 +84,41 @@ useEffect(() => {
 
   // Compute recommendations
   const recommendationRoles = hanaRoles.length > 0 ? hanaRoles : CAREER_ROLES;
-const allRecommendations = getCareerRecommendations(recommendationRoles, student);
+const hasAssessmentData =
+  student.skills.length > 0 ||
+  (student.interests?.length ?? 0) > 0 ||
+  (student.careerPreferences?.length ?? 0) > 0;
 
-  const categories = ['All', 'Backend & Enterprise', 'Frontend & Full Stack', 'Data & Analytics', 'AI & Data Science', 'Backend & Automation'];
+const allRecommendations = hasAssessmentData
+  ? getCareerRecommendations(recommendationRoles, student)
+  : [];
+
+  const categories = ['All', 'Backend & Enterprise', 'Frontend & Full Stack', 'Data & Analytics', 'AI & Data Science', 'Backend & Automation', 'Cloud & Security'];
 
   const filtered = allRecommendations.filter(item => {
-    if (filterCategory === 'All') return true;
-    return item.role.category === filterCategory;
-  });
+  if (filterCategory === 'All') return true;
+  return item.role.category === filterCategory;
+});
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === 'match') {
-      return b.matchPercentage - a.matchPercentage;
-    }
-    return b.overallReadinessScore - a.overallReadinessScore;
-  });
+const sorted = [...filtered].sort((a, b) => {
+  let scoreA = 0;
+  let scoreB = 0;
 
-  const topMatch = allRecommendations[0];
+  if (sortBy === 'readiness') {
+    scoreA = Number(a.overallReadinessScore);
+    scoreB = Number(b.overallReadinessScore);
+  } else if (sortBy === 'match') {
+    scoreA = Number(a.matchPercentage);
+    scoreB = Number(b.matchPercentage);
+  } else if (sortBy === 'careerFit') {
+    scoreA = Number(a.careerFitScore ?? 0);
+    scoreB = Number(b.careerFitScore ?? 0);
+  }
+
+  return scoreB - scoreA;
+});
+
+const topMatch = sorted.length > 0 ? sorted[0] : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-20">
@@ -119,7 +153,7 @@ const allRecommendations = getCareerRecommendations(recommendationRoles, student
             <div className="space-y-2 max-w-2xl">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-semibold border border-indigo-400/30">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
-                <span>#1 Algorithmic Match for Your Profile</span>
+                <span>Top Personalized Career Match</span>
               </div>
               <h2 className="text-2xl font-bold tracking-tight text-white">
                 {topMatch.role.title}
@@ -150,6 +184,8 @@ const allRecommendations = getCareerRecommendations(recommendationRoles, student
                     setSelectedRoleId(topMatch.role.id);
                     setActivePage('gap-analysis');
                   }}
+
+
                   className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-slate-900 bg-white hover:bg-slate-100 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
                   <span>Analyze Skill Gap</span>
@@ -157,14 +193,38 @@ const allRecommendations = getCareerRecommendations(recommendationRoles, student
                 </button>
                 <button
                   onClick={() => {
-                    setSelectedRoleId(topMatch.role.id);
-                    setActivePage('roadmap');
-                  }}
+  setStudent({
+    ...student,
+    confirmedCareerRoleId: topMatch.role.id,
+  });
+
+  setSelectedRoleId(topMatch.role.id);
+  setActivePage('roadmap');
+}}
                   className="w-full sm:w-auto px-5 py-2 text-xs font-semibold text-indigo-200 hover:text-white bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 rounded-lg transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Layers className="w-3.5 h-3.5" />
                   <span>View Roadmap</span>
                 </button>
+                <button
+ onClick={() => {
+  setStudent({
+    ...student,
+    confirmedCareerRoleId: topMatch.role.id,
+  });
+
+  setSelectedRoleId(topMatch.role.id);
+  setActivePage('roadmap');
+}}
+  className="w-full sm:w-auto px-5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-center gap-1.5"
+>
+  <CheckCircle2 className="w-3.5 h-3.5" />
+  <span>
+    {student.confirmedCareerRoleId === topMatch.role.id
+      ? 'Career Path Confirmed'
+      : 'Confirm Career Path'}
+  </span>
+</button>
               </div>
             </div>
           </div>
@@ -200,16 +260,46 @@ const allRecommendations = getCareerRecommendations(recommendationRoles, student
             onChange={(e) => setSortBy(e.target.value as any)}
             className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800"
           >
+
             <option value="readiness">Readiness Score (High to Low)</option>
             <option value="match">Match Percentage (High to Low)</option>
+               <option value="careerFit">Career Fit (Best for you)</option>
           </select>
+          <span className="text-[10px] text-indigo-600 font-semibold">
+  {sortBy}
+</span>
         </div>
       </div>
 
       {/* Career Roles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {sorted.length === 0 && (
+  <div className="p-10 bg-white rounded-xl border border-slate-200 text-center">
+    <div className="text-sm font-bold text-slate-900">
+      No career recommendation yet
+    </div>
+    <p className="text-xs text-slate-500 mt-2">
+      Complete your skill assessment, interests, and work preferences
+      to receive personalized career recommendations.
+    </p>
+    <button
+      onClick={() => setActivePage('assessment')}
+      className="mt-4 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+    >
+      Start Assessment
+    </button>
+  </div>
+)}
         {sorted.map((item, idx) => {
-          const isTop = item.isTopMatch;
+          console.log(
+  'SORT:',
+  sortBy,
+  item.role.title,
+  item.overallReadinessScore,
+  item.matchPercentage,
+  item.careerFitScore
+);
+          const isTop = idx === 0;
 
           return (
   <div
@@ -262,6 +352,22 @@ const allRecommendations = getCareerRecommendations(recommendationRoles, student
                       </div>
                       <div className="text-[10px] text-slate-400 font-medium">Skill Match</div>
                     </div>
+                    <div className="w-px h-7 bg-slate-200" />
+
+<div className="text-right">
+  <div className="text-xl font-bold font-mono text-emerald-600">
+    {item.personalFitScore ?? 0}%
+  </div>
+  <div className="text-[10px] text-slate-400 font-medium">Personal Fit</div>
+</div>
+<div className="w-px h-7 bg-slate-200" />
+
+<div className="text-right">
+  <div className="text-xl font-bold font-mono text-purple-600">
+    {item.careerFitScore ?? 0}%
+  </div>
+  <div className="text-[10px] text-slate-400 font-medium">Career Fit</div>
+</div>
                   </div>
                 </div>
 
@@ -332,6 +438,43 @@ const allRecommendations = getCareerRecommendations(recommendationRoles, student
 </div>
 </div>
 
+{/* Market Intelligence */}
+{(item.role.marketSkills?.length || item.role.marketOutlook) && (
+  <div className="mt-4 mb-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+    <div className="flex items-center gap-2 mb-2">
+      <TrendingUp className="w-4 h-4 text-indigo-600" />
+      <h4 className="text-xs font-bold text-indigo-900">
+        Market Intelligence
+      </h4>
+    </div>
+
+    {item.role.marketOutlook && (
+      <p className="text-[11px] text-slate-600 leading-relaxed mb-3">
+        {item.role.marketOutlook}
+      </p>
+    )}
+
+    {item.role.marketSkills && item.role.marketSkills.length > 0 && (
+      <div>
+        <div className="text-[10px] font-semibold text-slate-600 mb-1.5">
+          Key Skills for This Role
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {item.role.marketSkills.map((skill, i) => (
+            <span
+              key={i}
+              className="text-[10px] font-medium px-2 py-1 rounded-full bg-white text-indigo-700 border border-indigo-100"
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
                 {/* Missing Skills */}
                 <div className="space-y-1.5 mb-4">
                   <div className="text-[11px] font-semibold text-slate-700 flex items-center justify-between">
@@ -384,6 +527,17 @@ const allRecommendations = getCareerRecommendations(recommendationRoles, student
                   <Layers className="w-3.5 h-3.5" />
                   <span>Learning Roadmap</span>
                 </button>
+                   <button
+     onClick={() => setStudent({ ...student, confirmedCareerRoleId: item.role.id })}
+     className={`flex-1 py-2 text-xs font-semibold rounded-lg border flex items-center justify-center gap-1.5 ${
+       student.confirmedCareerRoleId === item.role.id
+         ? 'bg-emerald-600 text-white border-emerald-600'
+         : 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+     }`}
+   >
+     <CheckCircle2 className="w-3.5 h-3.5" />
+     <span>{student.confirmedCareerRoleId === item.role.id ? 'Confirmed' : 'Confirm'}</span>
+   </button>
               </div>
 
             </div>
