@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ActivePage, StudentProfile, SkillLevel } from '../types';
 import { CAREER_ROLES } from '../data/careerRolesData';
 import { getRoadmapForRole } from '../data/roadmapData';
+import { SapLearningHubPanel } from './SapLearningHubPanel';
 import { analyzeCareerGap } from '../utils/analysisEngine';
 import { 
   Layers, 
@@ -539,6 +540,8 @@ const phases = hanaRoadmap
   </div>
 
 </div>
+
+ <SapLearningHubPanel roleId={selectedRoleId || student.confirmedCareerRoleId || ''} />
 
       {/* Suggested Chronological Roadmap Phases */}
       <div className="space-y-8">

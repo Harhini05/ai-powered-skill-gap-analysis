@@ -47,6 +47,8 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyProfile));
   };
 
+    localStorage.removeItem('skillbridge-audit-log');
+
   // Save to localStorage when student changes
   useEffect(() => {
     try {
