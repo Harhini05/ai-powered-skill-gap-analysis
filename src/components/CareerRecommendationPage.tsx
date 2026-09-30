@@ -615,11 +615,6 @@ return (
   )}
 </div>
 
-{/* Fairness note */}
-<div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900">
-  <span className="font-bold">Fairness by design:</span> Recommendations use only skills, interests and work preferences. Gender, college, location and background are never used. Interests carry a small weight, so students are not penalised for fields they haven't discovered yet, and the student always makes the final decision.
-</div>
-
 
       {/* Career Guidance Footer Note */}
       <div className="p-6 bg-slate-100 rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row items-center justify-between gap-4">
